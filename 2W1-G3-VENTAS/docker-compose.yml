@@ -1,0 +1,75 @@
+version: '3.8'
+networks:
+  ventas-network:
+    driver: bridge
+volumes:
+  db-presupuesto-volume:
+  db-venta-volume:
+services:
+
+  db-ventas:
+    image: mysql:latest
+    networks:
+      - ventas-network
+    ports:
+      - "3307:3306"
+    container_name: db-ventas
+    environment:
+      MYSQL_DATABASE: ventas
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-venta-volume:/data
+    #ccommand: --initialize-insecure --log-error-verbosity=2
+
+  db-presupuestos:
+    image: mysql:latest
+    networks:
+      - ventas-network
+    ports:
+        - "3308:3306"
+    container_name: db-presupuestos
+    environment:
+      MYSQL_DATABASE: presupuestos
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-presupuesto-volume:/data
+    #command: --initialize-insecure --log-error-verbosity=2
+
+  api-ventas:
+    container_name: ventas-api
+    #image: api-ventas:1
+    build:
+      context: ./ventas-api
+      dockerfile: Dockerfile
+    restart: on-failure
+    networks:
+      - ventas-network
+
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db-ventas
+    environment:
+      MYSQL_HOST: db-ventas
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_PORT: 3306
+
+  api-presupuestos:
+    container_name: presupuestos-api
+    #image: api-presupuestos:1
+    build:
+      context: ./presupuestos-api
+      dockerfile: Dockerfile
+    restart: on-failure
+    networks:
+      - ventas-network
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db-presupuestos
+    environment:
+      MYSQL_HOST: db-presupuestos
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_PORT: 3306
